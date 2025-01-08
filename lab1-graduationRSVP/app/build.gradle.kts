@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.csc436.myapplication"
-    compileSdk = 34
+    namespace = "com.zybooks.graduationrsvp"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.csc436.myapplication"
-        minSdk = 24
-        targetSdk = 34
+        applicationId = "com.zybooks.graduationrsvp"
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
