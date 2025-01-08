@@ -2,4 +2,6 @@
     <string name="app_name">Graduation RSVP</string>
     <string name="graduation_announcement">Graduation Announcement</string>
     <string name="grad_cap_image_description">Graduation cap</string>
+    <string name="grad_location_details">May 14 - Ganus Hall - 2:00 pm</string>
+    <string name="icon_description">Information</string>
 </resources>
