@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         val game = BlackjackGame()
 
         setContent {
-            BlackjackScreen(game)
+            BlackjackScreen()
         }
 
     }

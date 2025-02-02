@@ -8,6 +8,6 @@ enum class Rank(val value: Int) {
 }
 
 
-data class Card (val suit: Suit, val rank: Rank){
+data class Card (val suit: Suit, val rank: Rank, var isFaceUp: Boolean = false){
     override fun toString(): String = "${rank.name} of ${suit.name}"
 }

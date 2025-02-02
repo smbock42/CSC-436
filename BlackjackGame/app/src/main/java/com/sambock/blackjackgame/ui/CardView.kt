@@ -1,204 +1,108 @@
 package com.sambock.blackjackgame.ui
 
-import android.graphics.Paint.Align
-import android.inputmethodservice.Keyboard.Row
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sambock.blackjackgame.R
 import com.sambock.blackjackgame.game.Card
 import com.sambock.blackjackgame.game.Rank
 import com.sambock.blackjackgame.game.Suit
 
 @Composable
-fun CardView(card: Card) {
-    val cardColor = if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) Color.Red else Color.Black
-    val suitDrawable = getSuitDrawable(card.suit)
-    val rankText = getRankDisplay(card.rank)
-    val suitPositions = getSuitPositions(card.rank)
+fun CardView(card: Card, onFlip: () -> Unit) {
+    var isFlipping by remember { mutableStateOf(false) }
+
+    val rotation by animateFloatAsState(
+        targetValue = if (card.isFaceUp) 0f else 180f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        finishedListener = { isFlipping = false }
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isFlipping) 0.5f else 1f,
+        animationSpec = tween(durationMillis = 250)
+    )
+
+    val cardDrawable = if (card.isFaceUp) getCardDrawable(card) else R.drawable.card_back
 
     Box(
         modifier = Modifier
-            .size(100.dp, 150.dp) // Card Size
-            .clip(RoundedCornerShape(10.dp)) // Rounded edges
+            .size(100.dp, 150.dp)
+            .clip(RoundedCornerShape(10.dp))
             .border(2.dp, Color.Black, RoundedCornerShape(10.dp))
-            .background(Color.White),
+            .background(Color.White)
+            .clickable { if (!isFlipping) { isFlipping = true; onFlip() } },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Top-left rank
-            Text(
-                text = rankText,
-                color = cardColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.weight(1f)) // Push elements apart
-
-            // Display structured suit symbols for numbered cards
-            if (card.rank.value in 2..10) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    suitPositions.forEach { row ->
-                        Row(horizontalArrangement = Arrangement.Center) {
-                            row.forEach { shouldDisplay ->
-                                if (shouldDisplay) { // Prevents false values from rendering
-                                    Image(
-                                        painter = painterResource(id = suitDrawable),
-                                        contentDescription = "Suit Symbol",
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Face cards: Show only one large suit symbol
-                Image(
-                    painter = painterResource(id = suitDrawable),
-                    contentDescription = "Suit Symbol",
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f)) // Push elements apart
-
-            // Bottom-right rank (mirrored)
-            Text(
-                text = rankText,
-                color = cardColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .graphicsLayer(rotationZ = 180f) // Upside-down
-            )
-        }
+        Image(
+            painter = painterResource(id = cardDrawable),
+            contentDescription = "Playing Card",
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(rotationY = rotation, alpha = alpha)
+        )
     }
 }
 
-fun getRankDisplay(rank: Rank): String {
-    return when (rank) {
-        Rank.ACE -> "A"
-        Rank.JACK -> "J"
-        Rank.QUEEN -> "Q"
-        Rank.KING -> "K"
-        else -> rank.value.toString()
+@Preview
+@Composable
+fun JackSpades() {
+    var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.JACK, true)) }
+
+    CardView(card = card) {
+        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
     }
 }
 
-fun getSuitDrawable(suit: Suit): Int {
-    return when (suit) {
-        Suit.HEARTS -> R.drawable.ic_heart
-        Suit.DIAMONDS -> R.drawable.ic_diamond
-        Suit.CLUBS -> R.drawable.ic_club
-        Suit.SPADES -> R.drawable.ic_spade
-    }
-}
-
-fun getSuitPositions(rank: Rank): List<List<Boolean>> {
-    return when (rank.value) {
-        2 -> listOf(
-            listOf(true),
-            listOf(true)
-        )
-        3 -> listOf(
-            listOf(true),
-            listOf(true),
-            listOf(true)
-        )
-        4 -> listOf(
-            listOf(true, true),
-            listOf(true, true)
-        )
-        5 -> listOf(
-            listOf(true, false, true),
-            listOf(false, true, false),
-            listOf(true, false, true)
-        )
-        6 -> listOf(
-            listOf(true, true),
-            listOf(true, true),
-            listOf(true, true)
-        )
-        7 -> listOf(
-            listOf(false, true, false),
-            listOf(true, true, true),
-            listOf(false, true, false),
-            listOf(true, true)
-        )
-        8 -> listOf(
-            listOf(true, true),
-            listOf(true, false, true),
-            listOf(true, true),
-            listOf(true, false, true),
-            listOf(true, true)
-        )
-        9 -> listOf(
-            listOf(true, false, true),
-            listOf(true, true, true),
-            listOf(false, true, false),
-            listOf(true, true, true),
-            listOf(true, false, true)
-        )
-        10 -> listOf(
-            listOf(true, true),
-            listOf(true, true),
-            listOf(true, true),
-            listOf(true, true),
-            listOf(true, true)
-        )
-        else -> emptyList() // Face cards display only one large suit symbol
-    }
-}
-
-fun getSymbolCount(rank: Rank): Int {
-    return if (rank.value in 2..10) rank.value else 1
-}
-
-@Preview()
+@Preview
 @Composable
 fun TwoClubs() {
-    CardView(card = Card(Suit.CLUBS, Rank.TWO))
+    var card by remember { mutableStateOf(Card(Suit.CLUBS, Rank.TWO, true)) }
+
+    CardView(card = card) {
+        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+    }
 }
 
-@Preview()
+@Preview
 @Composable
 fun SevenSpades() {
-    CardView(card = Card(Suit.SPADES, Rank.SEVEN))
+    var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.SEVEN, true)) }
+
+    CardView(card = card) {
+        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+    }
 }
 
-@Preview()
+@Preview
 @Composable
 fun AceHearts() {
-    CardView(card = Card(Suit.HEARTS, Rank.ACE))
+    var card by remember { mutableStateOf(Card(Suit.HEARTS, Rank.ACE, true)) }
+
+    CardView(card = card) {
+        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+    }
 }
 
-@Preview()
+@Preview
 @Composable
 fun KingDiamonds() {
-    CardView(card = Card(Suit.DIAMONDS, Rank.KING))
+    var card by remember { mutableStateOf(Card(Suit.DIAMONDS, Rank.KING, true)) }
+
+    CardView(card = card) {
+        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+    }
 }

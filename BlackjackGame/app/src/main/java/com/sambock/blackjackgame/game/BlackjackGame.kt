@@ -1,38 +1,82 @@
 package com.sambock.blackjackgame.game
 
+import com.sambock.blackjackgame.ui.getAllCards
+
 class BlackjackGame {
-    private val deck = Deck()
-    private val player = Player()
-    private val dealer = Dealer()
+    private val deck = mutableListOf<Card>()
+    private val playerHand = mutableListOf<Card>()
+    private val dealerHand = mutableListOf<Card>()
 
-    fun startGame() {
-        player.draw(deck)
-        dealer.draw(deck)
-        player.draw(deck)
-        dealer.draw(deck)
-
-        println("Player Hand: ${player.hand} | Score: ${player.hand.getScore()}")
-        println("Dealer Hand: ${dealer.hand} (One card hidden)")
+    init {
+        resetGame()
     }
 
-    fun playerHit() {
-        player.draw(deck)
-        println("Player Hand: ${player.hand} | Score: ${player.hand.getScore()}")
+    fun resetGame() {
+        deck.clear()
+        deck.addAll(getAllCards().shuffled()) // Shuffle deck
+        playerHand.clear()
+        dealerHand.clear()
 
-        if (player.hand.isBust()) {
-            println("Bust! You lose.")
+        // Deal two cards each
+        playerHand.add(drawCard())
+        playerHand.add(drawCard())
+        dealerHand.add(drawCard())
+        dealerHand.add(drawCard())
+    }
+
+    fun drawCard(): Card {
+        return if (deck.isNotEmpty()) deck.removeAt(0) else throw IllegalStateException("Deck is empty!")
+    }
+
+    fun getPlayerHand(): List<Card> = playerHand
+    fun getDealerHand(): List<Card> = dealerHand
+    fun getDeckSize(): Int = deck.size
+
+    fun calculateHandValue(hand: List<Card>): Int {
+        var total = 0
+        var aces = 0
+
+        for (card in hand) {
+            total += when (card.rank) {
+                Rank.ACE -> {
+                    aces += 1
+                    11
+                }
+                Rank.JACK, Rank.QUEEN, Rank.KING -> 10
+                else -> card.rank.value
+            }
+        }
+
+        // Adjust Aces from 11 → 1 if needed
+        while (total > 21 && aces > 0) {
+            total -= 10
+            aces -= 1
+        }
+
+        return total
+    }
+
+    fun playerHits() {
+        playerHand.add(drawCard())
+    }
+
+    fun dealerPlays() {
+        while (calculateHandValue(dealerHand) < 17) {
+            dealerHand.add(drawCard())
         }
     }
 
-    fun playerStand() {
-        dealer.play(deck)
-        println("Dealer Hand: ${dealer.hand} | Score: ${dealer.hand.getScore()}")
+    fun checkGameResult(): String {
+        val playerTotal = calculateHandValue(playerHand)
+        val dealerTotal = calculateHandValue(dealerHand)
 
-        when {
-            dealer.hand.isBust() -> println("Dealer busts! You win!")
-            player.hand.getScore() > dealer.hand.getScore() -> println("You win!")
-            player.hand.getScore() < dealer.hand.getScore() -> println("Dealer wins!")
-            else -> println("It's a tie!")
+        return when {
+            playerTotal == 21 -> "Blackjack! Player Wins!"
+            playerTotal > 21 -> "Player Busts! Dealer Wins!"
+            dealerTotal > 21 -> "Dealer Busts! Player Wins!"
+            playerTotal > dealerTotal -> "Player Wins!"
+            playerTotal < dealerTotal -> "Dealer Wins!"
+            else -> "It's a Tie!"
         }
     }
 }
