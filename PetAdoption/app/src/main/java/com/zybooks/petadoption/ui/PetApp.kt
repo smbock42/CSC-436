@@ -20,9 +20,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -52,14 +54,23 @@ fun PetApp(
 @Composable
 fun PetAppBar(
    title: String,
-   modifier: Modifier = Modifier
+   modifier: Modifier = Modifier,
+   canNavigateBack: Boolean = false,
+   onUpClick: () -> Unit = { },
 ) {
    TopAppBar(
       title = { Text(title) },
       colors = TopAppBarDefaults.topAppBarColors(
          containerColor = MaterialTheme.colorScheme.primaryContainer
       ),
-      modifier = modifier
+      modifier = modifier,
+      navigationIcon = {
+         if (canNavigateBack) {
+            IconButton(onClick = onUpClick) {
+               Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+            }
+         }
+      }
    )
 }
 
