@@ -7,3 +7,4 @@ import com.zybooks.petadoption.data.PetDataSource
 class AdoptViewModel : ViewModel() {
     fun getPet(id: Int): Pet = PetDataSource().getPet(id) ?: Pet()
 }
+
