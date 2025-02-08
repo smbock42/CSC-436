@@ -46,14 +46,6 @@ import com.zybooks.petadoption.data.PetGender
 import com.zybooks.petadoption.ui.theme.PetAdoptionTheme
 import kotlinx.serialization.Serializable
 
-@Composable
-fun PetApp(
-   modifier: Modifier = Modifier,
-   petViewModel: PetViewModel = viewModel()
-) {
-   Text("To be implemented...")
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PetAppBar(
