@@ -46,6 +46,22 @@ class TimerViewModel : ViewModel() {
 
       // TODO: Start coroutine that makes the timer count down
 
+      if (totalMillis > 0) {
+         isRunning = true
+         remainingMillis = totalMillis
+
+         timerJob = viewModelScope.launch {
+            while (remainingMillis > 0) {
+               while (remainingMillis > 0) {
+                  delay(100)
+                  remainingMillis -= 1000
+               }
+
+               isRunning = false
+            }
+         }
+      }
+
    }
 
    fun cancelTimer() {
