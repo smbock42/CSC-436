@@ -62,10 +62,18 @@ class MainActivity : ComponentActivity() {
       super.onStop()
 
       // Start TimerWorker if the timer is running
-      if (timerViewModel.isRunning) {
-         startWorker(timerViewModel.remainingMillis)
+      if (timerViewModel.uiState.value.isRunning) {
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this,
+                  Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+               startWorker(timerViewModel.uiState.value.remainingMillis)
+            }
+         } else {
+            startWorker(timerViewModel.uiState.value.remainingMillis)
+         }
       }
    }
+
 
    private fun startWorker(millisRemain: Long) {
       val timerWorkRequest: WorkRequest = OneTimeWorkRequestBuilder<TimerWorker>()
