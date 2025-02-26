@@ -7,6 +7,17 @@ class Hand {
         cards.add(card)
     }
 
+    fun getCards(): List<Card> = cards.toList()
+
+    fun removeCard(card: Card): Card? {
+        val index = cards.indexOf(card)
+        return if (index != -1) {
+            cards.removeAt(index)
+        } else {
+            null
+        }
+    }
+
     internal fun getActualScore(): Int {
         var score = cards.sumOf { it.actualRank().value }
         var aces = cards.count{ it.actualRank() == Rank.ACE }
