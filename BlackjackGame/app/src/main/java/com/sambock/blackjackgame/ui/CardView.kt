@@ -26,7 +26,7 @@ fun CardView(card: Card, onFlip: () -> Unit) {
     var isFlipping by remember { mutableStateOf(false) }
 
     val rotation by animateFloatAsState(
-        targetValue = if (card.isFaceUp) 0f else 180f,
+        targetValue = if (card.isRevealed) 0f else 180f,
         animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
         finishedListener = { isFlipping = false }
     )
@@ -36,7 +36,7 @@ fun CardView(card: Card, onFlip: () -> Unit) {
         animationSpec = tween(durationMillis = 250)
     )
 
-    val cardDrawable = if (card.isFaceUp) getCardDrawable(card) else R.drawable.card_back
+    val cardDrawable = if (card.isRevealed) getCardDrawable(card) else R.drawable.card_back
 
     Box(
         modifier = Modifier
@@ -63,7 +63,7 @@ fun JackSpades() {
     var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.JACK, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
     }
 }
 
@@ -73,7 +73,7 @@ fun TwoClubs() {
     var card by remember { mutableStateOf(Card(Suit.CLUBS, Rank.TWO, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
     }
 }
 
@@ -83,17 +83,17 @@ fun SevenSpades() {
     var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.SEVEN, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
     }
 }
 
 @Preview
 @Composable
 fun AceHearts() {
-    var card by remember { mutableStateOf(Card(Suit.HEARTS, Rank.ACE, true)) }
+    var card by remember { mutableStateOf(Card(Suit.HEARTS, Rank.ACE, false)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
     }
 }
 
@@ -103,6 +103,6 @@ fun KingDiamonds() {
     var card by remember { mutableStateOf(Card(Suit.DIAMONDS, Rank.KING, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isFaceUp) // Toggle face-up state
+        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
     }
 }

@@ -37,13 +37,13 @@ class BlackjackGame {
         var aces = 0
 
         for (card in hand) {
-            total += when (card.rank) {
+            total += when (card.getRank()) {
                 Rank.ACE -> {
                     aces += 1
                     11
                 }
                 Rank.JACK, Rank.QUEEN, Rank.KING -> 10
-                else -> card.rank.value
+                else -> card.getRank()!!.value
             }
         }
 

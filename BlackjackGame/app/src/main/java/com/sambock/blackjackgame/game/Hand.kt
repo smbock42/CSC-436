@@ -8,8 +8,8 @@ class Hand {
     }
 
     fun getScore(): Int {
-        var score = cards.sumOf { it.rank.value }
-        var aces = cards.count { it.rank == Rank.ACE}
+        var score = cards.sumOf { it.getRank()!!.value }
+        var aces = cards.count { it.getRank() == Rank.ACE}
 
         while (score > 21 && aces > 0) {
             score -= 10
