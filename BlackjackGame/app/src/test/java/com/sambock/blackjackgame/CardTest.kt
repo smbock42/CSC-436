@@ -64,6 +64,9 @@ class CardTest {
         val card = Card(Suit.HEARTS, Rank.ACE, isFaceUp = false)
         assertNull(card.getSuit())
         assertNull(card.getRank())
+
+
+
         card.flip()
         assertEquals(Suit.HEARTS, card.getSuit())
         assertEquals(Rank.ACE, card.getRank())
