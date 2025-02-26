@@ -52,4 +52,6 @@ data class Card (private val suit: Suit, private val rank: Rank, private var isF
             "Face Down Card"
         }
     }
+
+    internal fun actualRank(): Rank = rank
 }

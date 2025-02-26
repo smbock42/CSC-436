@@ -5,8 +5,8 @@ open class Player {
 
     fun draw(deck: Deck) {
         val card = deck.drawCard()
-        card?.let { hand.addCard(it) }
+        card.let { hand.addCard(it) }
     }
 
-    fun hasBlackjack(): Boolean = hand.getScore() == 21
+    fun hasBlackjack(): Boolean = hand.getActualScore() == 21
 }

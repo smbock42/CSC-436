@@ -7,19 +7,30 @@ class Hand {
         cards.add(card)
     }
 
-    fun getScore(): Int {
-        var score = cards.sumOf { it.getRank()!!.value }
-        var aces = cards.count { it.getRank() == Rank.ACE}
+    internal fun getActualScore(): Int {
+        var score = cards.sumOf { it.actualRank().value }
+        var aces = cards.count{ it.actualRank() == Rank.ACE }
 
         while (score > 21 && aces > 0) {
             score -= 10
             aces --
         }
-
         return score
     }
 
-    fun isBust(): Boolean = getScore() > 21
+    fun getVisibleScore(): Int {
+        val visibleCards = cards.filter { it.isRevealed }
+        var score = visibleCards.sumOf { it.actualRank().value }
+        var aces = visibleCards.count { it.actualRank() == Rank.ACE }
+        while (score > 21 && aces > 0) {
+            score -= 10
+            aces --
+        }
+        return score
+    }
+
+
+    fun isBust(): Boolean = getActualScore() > 21
 
     override fun toString(): String = cards.joinToString(", ")
 }
