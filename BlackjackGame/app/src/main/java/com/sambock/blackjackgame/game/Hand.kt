@@ -19,8 +19,8 @@ class Hand {
     }
 
     internal fun getActualScore(): Int {
-        var score = cards.sumOf { it.actualRank().value }
-        var aces = cards.count{ it.actualRank() == Rank.ACE }
+        var score = cards.sumOf { it.rank.value }
+        var aces = cards.count{ it.rank == Rank.ACE }
 
         while (score > 21 && aces > 0) {
             score -= 10
@@ -31,8 +31,8 @@ class Hand {
 
     fun getVisibleScore(): Int {
         val visibleCards = cards.filter { it.isRevealed }
-        var score = visibleCards.sumOf { it.actualRank().value }
-        var aces = visibleCards.count { it.actualRank() == Rank.ACE }
+        var score = visibleCards.sumOf { it.rank.value }
+        var aces = visibleCards.count { it.rank == Rank.ACE }
         while (score > 21 && aces > 0) {
             score -= 10
             aces --
@@ -40,8 +40,21 @@ class Hand {
         return score
     }
 
+    fun canSplit(): Boolean {
+        return cards.size == 2 && cards[0].rank == cards[1].rank
+    }
 
-    fun isBust(): Boolean = getActualScore() > 21
+    fun isBlackjack(): Boolean {
+        return cards.size == 2 && getActualScore() == 21
+    }
+
+    fun clear() {
+        cards.clear()
+    }
+
+    fun isBust(): Boolean {
+        return getActualScore() > 21
+    }
 
     override fun toString(): String = cards.joinToString(", ")
 }
