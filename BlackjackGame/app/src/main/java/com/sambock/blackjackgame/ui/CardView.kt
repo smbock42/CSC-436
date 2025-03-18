@@ -22,7 +22,11 @@ import com.sambock.blackjackgame.game.Rank
 import com.sambock.blackjackgame.game.Suit
 
 @Composable
-fun CardView(card: Card, onFlip: () -> Unit) {
+fun CardView(
+    card: Card,
+    modifier: Modifier = Modifier,
+    onFlip: () -> Unit = {}
+) {
     var isFlipping by remember { mutableStateOf(false) }
 
     val rotation by animateFloatAsState(
@@ -60,49 +64,49 @@ fun CardView(card: Card, onFlip: () -> Unit) {
 @Preview
 @Composable
 fun JackSpades() {
-    var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.JACK, true)) }
+    var card by remember { mutableStateOf(Card(Suit.SPADE, Rank.JACK, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
+        card = Card(card.suit, card.rank, !card.isRevealed) // Toggle face-up state
     }
 }
 
 @Preview
 @Composable
 fun TwoClubs() {
-    var card by remember { mutableStateOf(Card(Suit.CLUBS, Rank.TWO, true)) }
+    var card by remember { mutableStateOf(Card(Suit.CLUB, Rank.TWO, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
+        card = Card(card.suit, card.rank, !card.isRevealed) // Toggle face-up state
     }
 }
 
 @Preview
 @Composable
 fun SevenSpades() {
-    var card by remember { mutableStateOf(Card(Suit.SPADES, Rank.SEVEN, true)) }
+    var card by remember { mutableStateOf(Card(Suit.SPADE, Rank.SEVEN, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
+        card = Card(card.suit, card.rank, !card.isRevealed) // Toggle face-up state
     }
 }
 
 @Preview
 @Composable
 fun AceHearts() {
-    var card by remember { mutableStateOf(Card(Suit.HEARTS, Rank.ACE, false)) }
+    var card by remember { mutableStateOf(Card(Suit.HEART, Rank.ACE, false)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
+        card = Card(card.suit, card.rank, !card.isRevealed) // Toggle face-up state
     }
 }
 
 @Preview
 @Composable
 fun KingDiamonds() {
-    var card by remember { mutableStateOf(Card(Suit.DIAMONDS, Rank.KING, true)) }
+    var card by remember { mutableStateOf(Card(Suit.DIAMOND, Rank.KING, true)) }
 
     CardView(card = card) {
-        card = card.copy(isFaceUp = !card.isRevealed) // Toggle face-up state
+        card = Card(card.suit, card.rank, !card.isRevealed) // Toggle face-up state
     }
 }
