@@ -7,81 +7,96 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.sambock.blackjackgame.game.BlackjackGame
-import com.sambock.blackjackgame.game.Card
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sambock.blackjackgame.game.*
+import androidx.navigation.NavController
 
 @Composable
-fun BlackjackScreen() {
-    val game = remember { mutableStateOf(BlackjackGame()) }
-    val isGameActive = remember { mutableStateOf(false) }
-    val hasBlackjack = remember { mutableStateOf(false) }
+fun BlackjackScreen(
+    viewModel: BlackjackViewModel,
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    val game by viewModel.game.collectAsStateWithLifecycle()
+    val state = game.getCurrentState()
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        // Header with chip count
+        GameHeader(chipCount = game.getPlayerChips())
 
-        // 📌 Dealer's Hand (Top)
-        Text(text = "Dealer's Hand", fontSize = 20.sp)
-        Row {
-            game.value.getDealerHand().forEachIndexed { index, card ->
-                val isFaceUp = isGameActive.value && (index != 0 || hasBlackjack.value)
-                CardView(card.copy(isFaceUp = isFaceUp)) {}
+        // Main game content
+        when (state) {
+            is GameState.Betting -> {
+                BettingScreen(
+                    maxBet = game.getPlayerChips(),
+                    onBetPlaced = { viewModel.startNewHand(it) },
+                    navController = navController
+                )
+            }
+            is GameState.Playing -> {
+                GamePlayScreen(
+                    game = game,
+                    state = state,
+                    onHit = { viewModel.hit() },
+                    onStand = { viewModel.stand() },
+                    onDouble = { viewModel.double() },
+                    viewModel = viewModel
+                )
+            }
+            is GameState.Busting -> {
+                GamePlayScreen(
+                    game = game,
+                    state = GameState.Playing(currentBet = 0), // Dummy state
+                    onHit = { },
+                    onStand = { },
+                    onDouble = { },
+                    viewModel = viewModel,
+                    isBusting = true
+                )
+            }
+            is GameState.Complete -> {
+                GameOverScreen(
+                    result = state.result,
+                    winAmount = state.winAmount,
+                    onPlayAgain = { viewModel.resetGame() }
+                )
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 📌 Player's Hand (Below Dealer)
-        Text(text = "Your Hand", fontSize = 20.sp)
-        Row {
-            game.value.getPlayerHand().forEach { card ->
-                CardView(card.copy(isFaceUp = true)) {} // ✅ Always face-up
-            }
+@Composable
+private fun GameHeader(
+    chipCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        tonalElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Chips: $chipCount",
+                style = MaterialTheme.typography.titleMedium
+            )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 🎮 Game Controls
-        Row {
-            Button(onClick = {
-                game.value.resetGame()
-                isGameActive.value = true
-                hasBlackjack.value = game.value.calculateHandValue(game.value.getPlayerHand()) == 21
-                if (hasBlackjack.value) game.value.dealerPlays() // Auto dealer plays if Blackjack
-            }) {
-                Text("Deal New Hand")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (isGameActive.value && !hasBlackjack.value) {
-            Row {
-                Button(onClick = { game.value.playerHits() }) {
-                    Text("Hit")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = {
-                    game.value.dealerPlays()
-                    isGameActive.value = false
-                }) {
-                    Text("Stand")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 🏆 Result
-        Text(text = game.value.checkGameResult(), fontSize = 18.sp)
     }
 }
 
 @Preview
 @Composable
 fun ShowScreen() {
-    BlackjackScreen()
+    //val fakeViewModel: BlackjackViewModel = viewModel()
+    //BlackjackScreen(
+    //    viewModel = fakeViewModel
+    //)
 }
