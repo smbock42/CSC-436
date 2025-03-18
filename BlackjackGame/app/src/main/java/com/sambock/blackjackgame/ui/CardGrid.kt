@@ -16,7 +16,7 @@ fun CardGrid() {
             Row(modifier = Modifier.fillMaxWidth()) {
                 row.forEach { card ->
                     var isFaceUp by remember { mutableStateOf(true) }
-                    CardView(card.copy(isFaceUp = isFaceUp)) {
+                    CardView(Card(card.suit, card.rank, isFaceUp)) {
                         isFaceUp = !isFaceUp
                     }
                     Spacer(modifier = Modifier.width(4.dp))

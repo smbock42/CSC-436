@@ -1,82 +1,175 @@
 package com.sambock.blackjackgame.game
 
-import com.sambock.blackjackgame.ui.getAllCards
+class BlackjackGame(
+    private val initialChips: Int = 1000
+) {
+    private var chipManager = ChipManager(initialChips)
+    private var statsManager = StatsManager()
+    private val deck = Deck()
+    private val player = Player()
+    val dealer = Dealer()
+    private var currentState: GameState = GameState.Betting
+    private var currentBet: Int = 0
 
-class BlackjackGame {
-    private val deck = mutableListOf<Card>()
-    private val playerHand = mutableListOf<Card>()
-    private val dealerHand = mutableListOf<Card>()
+    fun startNewHand(betAmount: Int): Boolean {
+        println("BlackjackGame: Starting new hand with bet: $betAmount")
+        println("BlackjackGame: Current chips before bet: ${chipManager.getCurrentChips()}")
+        
+        if (!chipManager.placeBet(betAmount)) {
+            println("BlackjackGame: Failed to place bet")
+            return false
+        }
 
-    init {
-        resetGame()
+        println("BlackjackGame: Bet placed successfully")
+        currentBet = betAmount
+        deck.resetDeck(shuffle = true)
+
+        // Clear hands
+        player.primaryHand().clear()
+        dealer.primaryHand().clear()
+
+        // Deal initial cards
+        dealer.primaryHand().addCard(deck.drawCard()) // Face down
+        player.primaryHand().addCard(deck.drawCard().apply { flip() })
+        dealer.primaryHand().addCard(deck.drawCard().apply { flip() })
+        player.primaryHand().addCard(deck.drawCard().apply { flip() })
+
+        println("BlackjackGame: Initial deal complete")
+        println("BlackjackGame: Player hand: ${player.primaryHand().getCards().size} cards")
+        println("BlackjackGame: Dealer hand: ${dealer.primaryHand().getCards().size} cards")
+
+        currentState = GameState.Playing(
+            currentBet = betAmount,
+            canDouble = true,
+            canSplit = player.primaryHand().canSplit()
+        )
+        println("BlackjackGame: New state set to: $currentState")
+
+        if (player.primaryHand().isBlackjack()) {
+            println("BlackjackGame: Player has blackjack")
+            endHand()
+        }
+
+        println("BlackjackGame: Chips after hand start: ${chipManager.getCurrentChips()}")
+        return true
     }
 
-    fun resetGame() {
-        deck.clear()
-        deck.addAll(getAllCards().shuffled()) // Shuffle deck
-        playerHand.clear()
-        dealerHand.clear()
+    fun hit() {
+        if (currentState !is GameState.Playing) return
 
-        // Deal two cards each
-        playerHand.add(drawCard())
-        playerHand.add(drawCard())
-        dealerHand.add(drawCard())
-        dealerHand.add(drawCard())
+        val card = deck.drawCard()
+        card.flip()
+        player.primaryHand().addCard(card)
+
+        if (player.primaryHand().isBust()) {
+            currentState = GameState.Busting
+        }
     }
 
-    fun drawCard(): Card {
-        return if (deck.isNotEmpty()) deck.removeAt(0) else throw IllegalStateException("Deck is empty!")
+    fun stand() {
+        if (currentState !is GameState.Playing) return
+
+        dealer.revealHand()
+        while (dealer.shouldHit()) {
+            val card = deck.drawCard()
+            card.flip()
+            dealer.primaryHand().addCard(card)
+        }
+
+        endHand()
     }
 
-    fun getPlayerHand(): List<Card> = playerHand
-    fun getDealerHand(): List<Card> = dealerHand
-    fun getDeckSize(): Int = deck.size
+    fun double() {
+        if (currentState !is GameState.Playing) return
+        if (!chipManager.placeBet(currentBet)) return
 
-    fun calculateHandValue(hand: List<Card>): Int {
-        var total = 0
-        var aces = 0
+        currentBet *= 2
+        hit()
+        if (currentState is GameState.Playing) {
+            stand()
+        }
+    }
 
-        for (card in hand) {
-            total += when (card.getRank()) {
-                Rank.ACE -> {
-                    aces += 1
-                    11
+    fun endHand() {
+        val playerHand = player.primaryHand()
+        val dealerHand = dealer.primaryHand()
+
+        val result = when {
+            playerHand.isBust() -> GameResult.BUST
+            playerHand.isBlackjack() && !dealerHand.isBlackjack() -> GameResult.BLACKJACK
+            !playerHand.isBust() && dealerHand.isBust() -> GameResult.WIN
+            !playerHand.isBust() && playerHand.getActualScore() > dealerHand.getActualScore() -> GameResult.WIN
+            playerHand.getActualScore() == dealerHand.getActualScore() -> GameResult.PUSH
+            else -> GameResult.LOSE
+        }
+
+        val winAmount = when (result) {
+            GameResult.BLACKJACK -> chipManager.calculateWinnings(currentBet, true)
+            GameResult.WIN -> chipManager.calculateWinnings(currentBet, false)
+            GameResult.PUSH -> currentBet
+            else -> 0 // LOSE or BUST
+        }
+
+        if (winAmount > 0) {
+            chipManager.addWinnings(winAmount)
+        }
+
+        // Record game statistics
+        statsManager.recordGameResult(result, currentBet, chipManager.getCurrentChips())
+        
+        currentState = GameState.Complete(result, winAmount)
+    }
+
+    fun getCurrentState() = currentState
+    
+    // Helper method to copy another game's state
+    fun copyStateFrom(other: BlackjackGame) {
+        // Copy chip state
+        chipManager.copyFrom(other.chipManager)
+        statsManager = other.statsManager
+        currentBet = other.currentBet
+        
+        // Copy current state
+        when (val otherState = other.currentState) {
+            is GameState.Playing -> {
+                currentState = GameState.Playing(
+                    currentBet = otherState.currentBet,
+                    canDouble = otherState.canDouble,
+                    canSplit = otherState.canSplit
+                )
+                
+                // Copy dealer's hand
+                dealer.primaryHand().clear()
+                other.dealer.primaryHand().getCards().forEach { card ->
+                    dealer.primaryHand().addCard(card.copyWithState())
                 }
-                Rank.JACK, Rank.QUEEN, Rank.KING -> 10
-                else -> card.getRank()!!.value
+                
+                // Copy player's hand
+                player.primaryHand().clear()
+                other.player.primaryHand().getCards().forEach { card ->
+                    player.primaryHand().addCard(card.copyWithState())
+                }
+            }
+            is GameState.Complete -> {
+                currentState = GameState.Complete(
+                    result = otherState.result,
+                    winAmount = otherState.winAmount
+                )
+            }
+            is GameState.Betting -> {
+                currentState = GameState.Betting
+            }
+            is GameState.Busting -> {
+                currentState = GameState.Busting
             }
         }
-
-        // Adjust Aces from 11 → 1 if needed
-        while (total > 21 && aces > 0) {
-            total -= 10
-            aces -= 1
-        }
-
-        return total
     }
+    fun getPlayerChips() = chipManager.getCurrentChips()
+    fun getPlayerHand() = player.primaryHand()
+    fun getDealerHand() = dealer.primaryHand()
+    fun getStatsManager() = statsManager
+}
 
-    fun playerHits() {
-        playerHand.add(drawCard())
-    }
-
-    fun dealerPlays() {
-        while (calculateHandValue(dealerHand) < 17) {
-            dealerHand.add(drawCard())
-        }
-    }
-
-    fun checkGameResult(): String {
-        val playerTotal = calculateHandValue(playerHand)
-        val dealerTotal = calculateHandValue(dealerHand)
-
-        return when {
-            playerTotal == 21 -> "Blackjack! Player Wins!"
-            playerTotal > 21 -> "Player Busts! Dealer Wins!"
-            dealerTotal > 21 -> "Dealer Busts! Player Wins!"
-            playerTotal > dealerTotal -> "Player Wins!"
-            playerTotal < dealerTotal -> "Dealer Wins!"
-            else -> "It's a Tie!"
-        }
-    }
+fun ChipManager.copyFrom(other: ChipManager) {
+    chipCount = other.getCurrentChips()
 }

@@ -3,26 +3,41 @@ package com.sambock.blackjackgame
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.sambock.blackjackgame.game.BlackjackGame
-import com.sambock.blackjackgame.ui.BlackjackScreen
-import com.sambock.blackjackgame.ui.theme.BlackjackGameTheme
+import androidx.activity.viewModels
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.sambock.blackjackgame.ui.*
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: BlackjackViewModel by viewModels {
+        BlackjackViewModelFactory(this)
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val game = BlackjackGame()
 
         setContent {
-            BlackjackScreen()
-        }
+            val navController = rememberNavController()
 
+            NavHost(navController = navController, startDestination = "landing") {
+                composable("landing") {
+                    LandingScreen(
+                        onNavigateToGame = { navController.navigate("game") },
+                        onNavigateToSettings = { navController.navigate("settings") },
+                        onNavigateToStats = { navController.navigate("stats") }
+                    )
+                }
+                composable("game") {
+                    BlackjackScreen(viewModel = viewModel, navController = navController)
+                }
+                composable("settings") {
+                    SettingsScreen(viewModel = viewModel, navController = navController)
+                }
+                composable("stats") {
+                    StatsScreenWithViewModel(viewModel = viewModel, navController = navController)
+                }
+            }
+        }
     }
 }
