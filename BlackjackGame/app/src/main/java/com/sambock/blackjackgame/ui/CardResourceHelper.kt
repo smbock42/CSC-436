@@ -66,20 +66,19 @@ private val cardResourceMap = mapOf(
 
 // Function to get the drawable resource ID for a given card
 fun getCardDrawable(card: Card): Int {
-    val suitLetter = when (card.getSuit()) {
-        Suit.HEARTS -> "h"
-        Suit.DIAMONDS -> "d"
-        Suit.CLUBS -> "c"
-        Suit.SPADES -> "s"
-        else -> null //todo: should this be null?
+    val suitLetter = when (card.suit) {
+        Suit.HEART -> "h"
+        Suit.DIAMOND -> "d"
+        Suit.CLUB -> "c"
+        Suit.SPADE -> "s"
     }
 
-    val rankLetter = when (card.getRank()) {
+    val rankLetter = when (card.rank) {
         Rank.ACE -> "a"
         Rank.JACK -> "j"
         Rank.QUEEN -> "q"
         Rank.KING -> "k"
-        else -> card.getRank()!!.value.toString() // 2-10 remain the same
+        else -> card.rank.value.toString() // 2-10 remain the same
     }
 
     val key = "$rankLetter$suitLetter"
