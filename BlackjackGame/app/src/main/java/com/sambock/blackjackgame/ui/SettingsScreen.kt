@@ -3,14 +3,12 @@ package com.sambock.blackjackgame.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
 @Composable
@@ -19,16 +17,9 @@ fun SettingsScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
-    var hasChanges by remember { mutableStateOf(false) }
-    var soundEnabled by remember { mutableStateOf(true) }
-    var vibrationEnabled by remember { mutableStateOf(true) }
-
     val chipCount by viewModel.game.collectAsStateWithLifecycle()
     val currentChips = chipCount.getPlayerChips()
-
-    fun updateSettings() {
-        hasChanges = true
-    }
+    val soundEnabled by viewModel.soundEnabled.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -63,32 +54,14 @@ fun SettingsScreen(
             )
             Switch(
                 checked = soundEnabled,
-                onCheckedChange = { soundEnabled = it }
-            )
-        }
-
-        // Vibration Toggle
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Vibration",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Switch(
-                checked = vibrationEnabled,
-                onCheckedChange = { vibrationEnabled = it }
+                onCheckedChange = { viewModel.setSoundEnabled(it) }
             )
         }
 
         // Top Up Chips Button
         if (currentChips < 100) {
             Button(
-                onClick = {
-                    viewModel.topUpChips()
-                },
+                onClick = { viewModel.topUpChips() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp)
@@ -97,20 +70,16 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Apply Button
         Button(
             onClick = {
-                // TODO: Save settings
-                hasChanges = false
+                viewModel.resetStats()
+                navController.popBackStack()
             },
-            enabled = hasChanges,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
         ) {
-            Text(if (hasChanges) "Apply Changes" else "No Changes")
+            Text("Reset Statistics")
         }
     }
 }

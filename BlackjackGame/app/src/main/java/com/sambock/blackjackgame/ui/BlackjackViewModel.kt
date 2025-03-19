@@ -1,11 +1,13 @@
 package com.sambock.blackjackgame.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sambock.blackjackgame.data.ChipDataStore
 import com.sambock.blackjackgame.data.StatsDataStore
 import com.sambock.blackjackgame.game.BlackjackGame
 import com.sambock.blackjackgame.game.Card
+import com.sambock.blackjackgame.sound.SoundManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,10 +15,12 @@ import kotlinx.coroutines.launch
 
 class BlackjackViewModel(
     private val chipDataStore: ChipDataStore,
-    private val statsDataStore: StatsDataStore
+    private val statsDataStore: StatsDataStore,
+    context: Context
 ) : ViewModel() {
     private val _game = MutableStateFlow(BlackjackGame(statsDataStore))
     val game = _game.asStateFlow()
+    private val soundManager = SoundManager(context)
 
     private var currentChips = 0
 
@@ -32,6 +36,9 @@ class BlackjackViewModel(
     private var _isBusted = MutableStateFlow(false)
     val isBusted = _isBusted.asStateFlow()
 
+    private var _soundEnabled = MutableStateFlow(true)
+    val soundEnabled = _soundEnabled.asStateFlow()
+
     init {
         viewModelScope.launch {
             chipDataStore.chipCount.collect { chips ->
@@ -46,6 +53,23 @@ class BlackjackViewModel(
                     _game.value = newGame
                 }
             }
+        }
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        _soundEnabled.value = enabled
+        soundManager.setSoundEnabled(enabled)
+    }
+
+    private fun checkWinAndPlaySound(playerHand: com.sambock.blackjackgame.game.Hand, dealerHand: com.sambock.blackjackgame.game.Hand) {
+        when {
+            playerHand.isBust() -> soundManager.playLoseSound()
+            dealerHand.isBust() -> soundManager.playWinSound()
+            playerHand.isBlackjack() && !dealerHand.isBlackjack() -> soundManager.playWinSound()
+            !playerHand.isBlackjack() && dealerHand.isBlackjack() -> soundManager.playLoseSound()
+            playerHand.getActualScore() > dealerHand.getActualScore() -> soundManager.playWinSound()
+            playerHand.getActualScore() < dealerHand.getActualScore() -> soundManager.playLoseSound()
+            // Push (tie) - no sound
         }
     }
 
@@ -93,6 +117,7 @@ class BlackjackViewModel(
         val holeCard = currentGame.dealer.primaryHand().getCards().first()
         holeCard.flip()
         _lastDrawnCard.value = holeCard
+        soundManager.playDealSound()
         updateGameState { }  // Force UI update to show flipped card
         delay(1500)
         _lastDrawnCard.value = null
@@ -101,6 +126,7 @@ class BlackjackViewModel(
         while (currentGame.shouldDealerHit()) {
             val newCard = currentGame.deck.drawCard().apply { flip() }
             _lastDrawnCard.value = newCard
+            soundManager.playDealSound()
             // Add card to dealer's hand
             currentGame.dealer.primaryHand().addCard(newCard)
             // Force UI update to show the new card
@@ -117,6 +143,7 @@ class BlackjackViewModel(
         updateGameState { game ->
             game.endHand()
         }
+        checkWinAndPlaySound(currentGame.getPlayerHand(), currentGame.dealer.primaryHand())
         _isDealerAnimating.value = false
     }
 
@@ -130,6 +157,7 @@ class BlackjackViewModel(
             if (newGame.startNewHand(betAmount)) {
                 updateChips(newGame.getPlayerChips())
                 _game.value = newGame
+                soundManager.playDealSound()
 
                 if (newGame.checkForBlackjack()) {
                     _isDealerAnimating.value = true
@@ -144,6 +172,7 @@ class BlackjackViewModel(
                     updateGameState { game ->
                         game.endHand()
                     }
+                    checkWinAndPlaySound(newGame.getPlayerHand(), newGame.dealer.primaryHand())
                 }
             }
         }
@@ -155,6 +184,7 @@ class BlackjackViewModel(
             val currentGame = _game.value
             val card = currentGame.deck.drawCard().apply { flip() }
             _lastDrawnCard.value = card
+            soundManager.playDealSound()
             currentGame.addCardToPlayer(card)
             
             updateGameState { }  // Update UI to show new card
@@ -163,6 +193,7 @@ class BlackjackViewModel(
 
             if (currentGame.getPlayerHand().isBust()) {
                 _isBusted.value = true
+                soundManager.playLoseSound()
                 delay(1500)  // Extra delay to see the bust
                 updateGameState { game ->
                     game.endHand()
@@ -192,6 +223,7 @@ class BlackjackViewModel(
             // Draw and show the double down card
             val card = currentGame.deck.drawCard().apply { flip() }
             _lastDrawnCard.value = card
+            soundManager.playDealSound()
             currentGame.addCardToPlayer(card)
             updateGameState { }  // Update UI with new card
             delay(1500)  // Show the doubled card
@@ -201,6 +233,7 @@ class BlackjackViewModel(
 
             if (currentGame.getPlayerHand().isBust()) {
                 _isBusted.value = true
+                soundManager.playLoseSound()
                 delay(1500)  // Show the bust before ending
                 updateGameState { game ->
                     game.endHand()
@@ -223,5 +256,10 @@ class BlackjackViewModel(
             newGame.copyStateFrom(currentGame)
             _game.value = newGame
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        soundManager.release()
     }
 }
