@@ -20,7 +20,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var hasChanges by remember { mutableStateOf(false) }
-    var minimumBet by remember { mutableStateOf(5) }
     var soundEnabled by remember { mutableStateOf(true) }
     var vibrationEnabled by remember { mutableStateOf(true) }
 
@@ -49,21 +48,6 @@ fun SettingsScreen(
                 text = "Settings",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-
-        // Minimum Bet Setting
-        Column {
-            Text(
-                text = "Minimum Bet: $minimumBet",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Slider(
-                value = minimumBet.toFloat(),
-                onValueChange = { minimumBet = it.toInt() },
-                valueRange = 5f..50f,
-                steps = 9,
-                modifier = Modifier.padding(top = 8.dp)
             )
         }
 
