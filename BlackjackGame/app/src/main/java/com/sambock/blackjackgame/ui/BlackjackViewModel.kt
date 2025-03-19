@@ -3,6 +3,7 @@ package com.sambock.blackjackgame.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sambock.blackjackgame.data.ChipDataStore
+import com.sambock.blackjackgame.data.StatsDataStore
 import com.sambock.blackjackgame.game.BlackjackGame
 import com.sambock.blackjackgame.game.Card
 import kotlinx.coroutines.delay
@@ -11,9 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class BlackjackViewModel(
-    private val chipDataStore: ChipDataStore
+    private val chipDataStore: ChipDataStore,
+    private val statsDataStore: StatsDataStore
 ) : ViewModel() {
-    private val _game = MutableStateFlow(BlackjackGame())
+    private val _game = MutableStateFlow(BlackjackGame(statsDataStore))
     val game = _game.asStateFlow()
 
     private var currentChips = 0
@@ -35,11 +37,11 @@ class BlackjackViewModel(
             chipDataStore.chipCount.collect { chips ->
                 if (currentChips == 0) {
                     currentChips = chips
-                    _game.value = BlackjackGame(chips)
+                    _game.value = BlackjackGame(statsDataStore, chips)
                 } else {
                     val currentGame = _game.value
                     currentChips = chips
-                    val newGame = BlackjackGame(chips)
+                    val newGame = BlackjackGame(statsDataStore, chips)
                     newGame.copyStateFrom(currentGame)
                     _game.value = newGame
                 }
@@ -57,8 +59,14 @@ class BlackjackViewModel(
     fun resetGame() {
         viewModelScope.launch {
             _isBusted.value = false
-            val newGame = BlackjackGame(currentChips)
+            val newGame = BlackjackGame(statsDataStore, currentChips)
             _game.value = newGame
+        }
+    }
+
+    fun resetStats() {
+        viewModelScope.launch {
+            _game.value.getStatsManager().reset()
         }
     }
 
@@ -71,7 +79,7 @@ class BlackjackViewModel(
         if (previousChips != currentGame.getPlayerChips()) {
             updateChips(currentGame.getPlayerChips())
         }
-        val newGame = BlackjackGame(currentGame.getPlayerChips()).apply {
+        val newGame = BlackjackGame(statsDataStore, currentGame.getPlayerChips()).apply {
             copyStateFrom(currentGame)
         }
         _game.value = newGame
@@ -96,7 +104,7 @@ class BlackjackViewModel(
             // Add card to dealer's hand
             currentGame.dealer.primaryHand().addCard(newCard)
             // Force UI update to show the new card
-            _game.value = BlackjackGame(currentGame.getPlayerChips()).apply {
+            _game.value = BlackjackGame(statsDataStore, currentGame.getPlayerChips()).apply {
                 copyStateFrom(currentGame)
             }
             delay(1500)  // Wait for card animation
@@ -116,7 +124,7 @@ class BlackjackViewModel(
         viewModelScope.launch {
             val currentGame = _game.value
             
-            val newGame = BlackjackGame(currentGame.getPlayerChips())
+            val newGame = BlackjackGame(statsDataStore, currentGame.getPlayerChips())
             newGame.copyStateFrom(currentGame)
 
             if (newGame.startNewHand(betAmount)) {
@@ -211,7 +219,7 @@ class BlackjackViewModel(
             val newChips = 1000
             chipDataStore.saveChipCount(newChips)
             val currentGame = _game.value
-            val newGame = BlackjackGame(newChips)
+            val newGame = BlackjackGame(statsDataStore, newChips)
             newGame.copyStateFrom(currentGame)
             _game.value = newGame
         }

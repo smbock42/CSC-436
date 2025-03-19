@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.sambock.blackjackgame.data.ChipDataStore
+import com.sambock.blackjackgame.data.StatsDataStore
 
 class BlackjackViewModelFactory(
     private val context: Context
@@ -11,7 +12,10 @@ class BlackjackViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(BlackjackViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return BlackjackViewModel(ChipDataStore(context)) as T
+            return BlackjackViewModel(
+                ChipDataStore(context),
+                StatsDataStore(context)
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -1,10 +1,13 @@
 package com.sambock.blackjackgame.game
 
+import com.sambock.blackjackgame.data.StatsDataStore
+
 class BlackjackGame(
+    private val statsDataStore: StatsDataStore,
     private val initialChips: Int = 1000
 ) {
     private var chipManager = ChipManager(initialChips)
-    private var statsManager = StatsManager()
+    private var statsManager = StatsManager(statsDataStore)
     val deck = Deck()
     private val player = Player()
     val dealer = Dealer()
@@ -68,6 +71,17 @@ class BlackjackGame(
 
     fun stand() {
         if (currentState !is GameState.Playing) return
+        
+        // First reveal dealer's hole card
+        dealer.revealHand()
+
+        // Dealer hits until 17 or above
+        while (dealer.shouldHit()) {
+            val card = deck.drawCard()
+            card.flip()
+            dealer.primaryHand().addCard(card)
+        }
+
         endHand()
     }
 
@@ -75,13 +89,17 @@ class BlackjackGame(
         if (currentState !is GameState.Playing) return
         if (!chipManager.placeBet(currentBet)) return
         currentBet *= 2
+        
+        // Draw one card for player then stand
+        val card = deck.drawCard()
+        card.flip()
+        player.primaryHand().addCard(card)
+        stand()
     }
 
     fun endHand() {
         val playerHand = player.primaryHand()
         val dealerHand = dealer.primaryHand()
-
-        dealer.revealHand()
 
         val result = when {
             playerHand.isBust() -> GameResult.BUST
@@ -103,7 +121,7 @@ class BlackjackGame(
             chipManager.addWinnings(winAmount)
         }
 
-        statsManager.recordGameResult(result, currentBet, chipManager.getCurrentChips())
+        statsManager.recordGameResult(result)
         
         currentState = GameState.Complete(result, winAmount)
     }

@@ -1,26 +1,18 @@
 package com.sambock.blackjackgame.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sambock.blackjackgame.game.StatsManager
 import androidx.navigation.NavController
-import com.sambock.blackjackgame.game.ChipHistoryEntry
+import com.sambock.blackjackgame.game.StatsManager
 
 @Composable
 fun StatsScreenWithViewModel(
@@ -30,6 +22,7 @@ fun StatsScreenWithViewModel(
 ) {
     StatsScreen(
         statsManager = viewModel.getStats(),
+        onReset = { viewModel.resetStats() },
         navController = navController,
         modifier = modifier
     )
@@ -38,9 +31,35 @@ fun StatsScreenWithViewModel(
 @Composable
 fun StatsScreen(
     statsManager: StatsManager,
+    onReset: () -> Unit,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Reset Statistics") },
+            text = { Text("Are you sure you want to reset all statistics? This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onReset()
+                        showResetDialog = false
+                    }
+                ) {
+                    Text("Reset")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -49,6 +68,7 @@ fun StatsScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
@@ -56,53 +76,27 @@ fun StatsScreen(
             }
             Text(
                 text = "Statistics",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 24.dp)
+                style = MaterialTheme.typography.headlineMedium
             )
+            TextButton(onClick = { showResetDialog = true }) {
+                Text("Reset")
+            }
         }
-
-        // Win/Loss Statistics
-        StatisticsSection(
-            title = "Game Statistics",
-            stats = listOf(
-                "Hands Played" to statsManager.getHandsPlayed().toString(),
-                "Hands Won" to statsManager.getHandsWon().toString(),
-                "Hands Lost" to statsManager.getHandsLost().toString(),
-                "Pushes" to statsManager.getPushes().toString(),
-                "Win Rate" to "%.1f%%".format(statsManager.getWinPercentage()),
-                "Blackjacks" to statsManager.getBlackjacks().toString()
-            )
-        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Financial Statistics
+        // Game Statistics
         StatisticsSection(
-            title = "Financial Statistics",
+            title = "Game Statistics",
             stats = listOf(
-                "Total Winnings" to "$${statsManager.getTotalWinnings()}",
-                "Total Losses" to "$${statsManager.getTotalLosses()}",
-                "Net Profit" to "$${statsManager.getNetProfit()}",
-                "Largest Win" to "$${statsManager.getLargestWin()}",
-                "Largest Loss" to "$${statsManager.getLargestLoss()}"
+                "Total Hands" to statsManager.getHandsPlayed().toString(),
+                "Wins" to statsManager.getWins().toString(),
+                "Losses" to statsManager.getLosses().toString(),
+                "Pushes" to statsManager.getPushes().toString(),
+                "Win Rate" to "%.1f%%".format(statsManager.getWinPercentage()),
+                "Blackjacks" to statsManager.getBlackjacks().toString(),
+                "Busts" to statsManager.getBusts().toString()
             )
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Chip History Chart
-        Text(
-            text = "Chip History",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        ChipHistoryChart(
-            history = statsManager.getChipHistory(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .padding(8.dp)
         )
     }
 }
@@ -151,65 +145,5 @@ private fun StatisticsSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ChipHistoryChart(
-    history: List<ChipHistoryEntry>,
-    modifier: Modifier = Modifier
-) {
-    if (history.isEmpty()) {
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center
-        ) {
-            Text("No game history yet")
-        }
-        return
-    }
-
-    Canvas(modifier = modifier) {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        val maxChips = history.maxOfOrNull { it.chipCount } ?: 0
-        val minChips = history.minOfOrNull { it.chipCount } ?: 0
-        val range = (maxChips - minChips).coerceAtLeast(1)
-
-        // Draw coordinate system
-        drawLine(
-            Color.Gray,
-            Offset(0f, height),
-            Offset(width, height),
-            1f
-        )
-        drawLine(
-            Color.Gray,
-            Offset(0f, 0f),
-            Offset(0f, height),
-            1f
-        )
-
-        history.forEachIndexed { index, entry ->
-            val x = (index.toFloat() / (history.size - 1)) * width
-            val y = height - ((entry.chipCount - minChips).toFloat() / range) * height
-
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
-        }
-
-        // Draw the line
-        drawPath(
-            path,
-            Color.Blue,
-            style = Stroke(
-                width = 3f,
-                cap = StrokeCap.Round
-            )
-        )
     }
 }

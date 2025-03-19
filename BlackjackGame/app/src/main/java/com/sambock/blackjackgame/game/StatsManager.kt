@@ -1,16 +1,32 @@
 package com.sambock.blackjackgame.game
 
-data class ChipHistoryEntry(val chipCount: Int, val timestamp: Long = System.currentTimeMillis())
+import com.sambock.blackjackgame.data.StatsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
-class StatsManager {
+class StatsManager(private val statsDataStore: StatsDataStore) {
     private var wins = 0
     private var losses = 0
     private var pushes = 0
     private var blackjacks = 0
     private var busts = 0
-    private val chipHistory = mutableListOf<ChipHistoryEntry>()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
-    fun recordGameResult(result: GameResult, betAmount: Int, finalChips: Int) {
+    init {
+        // Load initial stats
+        scope.launch {
+            val stats = statsDataStore.statsFlow.first()
+            wins = (stats["wins"] as? Number)?.toInt() ?: 0
+            losses = (stats["losses"] as? Number)?.toInt() ?: 0
+            pushes = (stats["pushes"] as? Number)?.toInt() ?: 0
+            blackjacks = (stats["blackjacks"] as? Number)?.toInt() ?: 0
+            busts = (stats["busts"] as? Number)?.toInt() ?: 0
+        }
+    }
+
+    fun recordGameResult(result: GameResult) {
         when (result) {
             GameResult.WIN -> wins++
             GameResult.LOSE -> losses++
@@ -18,7 +34,31 @@ class StatsManager {
             GameResult.BLACKJACK -> blackjacks++
             GameResult.BUST -> busts++
         }
-        chipHistory.add(ChipHistoryEntry(finalChips))
+        persistStats()
+    }
+
+    private fun persistStats() {
+        scope.launch {
+            statsDataStore.updateStats(
+                totalHands = getHandsPlayed(),
+                wins = wins,
+                losses = losses,
+                pushes = pushes,
+                blackjacks = blackjacks,
+                busts = busts
+            )
+        }
+    }
+
+    fun reset() {
+        wins = 0
+        losses = 0
+        pushes = 0
+        blackjacks = 0
+        busts = 0
+        scope.launch {
+            statsDataStore.resetStats()
+        }
     }
 
     fun getWins(): Int = wins
@@ -26,7 +66,6 @@ class StatsManager {
     fun getPushes(): Int = pushes
     fun getBlackjacks(): Int = blackjacks
     fun getBusts(): Int = busts
-    fun getChipHistory(): List<ChipHistoryEntry> = chipHistory
 
     fun getHandsPlayed(): Int = wins + losses + pushes
     fun getHandsWon(): Int = wins
@@ -35,25 +74,5 @@ class StatsManager {
     fun getWinPercentage(): Double {
         val handsPlayed = getHandsPlayed()
         return if (handsPlayed > 0) wins.toDouble() / handsPlayed * 100 else 0.0
-    }
-
-    fun getTotalWinnings(): Int {
-        return chipHistory.sumOf { if (it.chipCount > 1000) it.chipCount - 1000 else 0 }
-    }
-
-    fun getTotalLosses(): Int {
-        return chipHistory.sumOf { if (it.chipCount < 1000) 1000 - it.chipCount else 0 }
-    }
-
-    fun getNetProfit(): Int {
-        return getTotalWinnings() - getTotalLosses()
-    }
-
-    fun getLargestWin(): Int {
-        return chipHistory.maxOfOrNull { it.chipCount } ?: 0
-    }
-
-    fun getLargestLoss(): Int {
-        return chipHistory.minOfOrNull { it.chipCount } ?: 0
     }
 }
