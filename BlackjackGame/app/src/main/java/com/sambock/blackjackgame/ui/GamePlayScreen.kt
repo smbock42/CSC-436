@@ -20,44 +20,32 @@ fun GamePlayScreen(
     modifier: Modifier = Modifier,
     isBusting: Boolean = false
 ) {
-    println("GamePlayScreen: Composing with state: $state, isBusting: $isBusting")
-    println("GamePlayScreen: Player hand: ${game.getPlayerHand().getCards().size} cards")
-    println("GamePlayScreen: Dealer hand: ${game.getDealerHand().getCards().size} cards")
-    
     val isDealerAnimating by viewModel.isDealerAnimating.collectAsState()
-    var dealerActionState by remember { mutableStateOf("") }
-    val lastCardState = remember { mutableStateOf<Card?>(null) }
-    val lastCard = lastCardState.value
+    val isAnimating by viewModel.isAnimating.collectAsState()
+    val lastDrawnCard by viewModel.lastDrawnCard.collectAsState()
+    val isBusted by viewModel.isBusted.collectAsState()
+    
+    var statusMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(game) {
-        println("GamePlayScreen: LaunchedEffect triggered")
-    }
-
-    LaunchedEffect(isDealerAnimating, game.getDealerHand().getCards().size) {
-        if (isDealerAnimating) {
-            while (isDealerAnimating) {
-                dealerActionState = when {
-                    game.getDealerHand().getVisibleScore() < 17 -> "Drawing card..."
-                    game.getDealerHand().getVisibleScore() > 21 -> "Bust!"
-                    else -> "Stands"
+    // Update status message based on game state and animations
+    LaunchedEffect(isDealerAnimating, isAnimating, lastDrawnCard, isBusted) {
+        statusMessage = when {
+            isDealerAnimating -> when {
+                lastDrawnCard != null -> "Dealer draws ${lastDrawnCard?.rank?.name} of ${lastDrawnCard?.suit}"
+                game.getDealerHand().getVisibleScore() > 21 -> "Dealer busts with ${game.getDealerHand().getVisibleScore()}!"
+                !game.dealer.shouldHit() -> "Dealer stands at ${game.getDealerHand().getVisibleScore()}"
+                else -> "Dealer's turn..."
+            }
+            isAnimating && lastDrawnCard != null -> {
+                val message = "You drew ${lastDrawnCard?.rank?.name} of ${lastDrawnCard?.suit}"
+                if (game.getPlayerHand().isBust()) {
+                    "$message - Bust with ${game.getPlayerHand().getActualScore()}!"
+                } else {
+                    "$message (Total: ${game.getPlayerHand().getActualScore()})"
                 }
-                delay(500) // Add delay for animation
             }
-        } else {
-            dealerActionState = ""
-        }
-    }
-
-    LaunchedEffect(isBusting) {
-        if (isBusting) {
-            val cards = game.getPlayerHand().getCards()
-            if (cards.isNotEmpty()) {
-                lastCardState.value = cards.last()
-            }
-            delay(1000)
-            viewModel.updateGameState { game ->
-                game.endHand()
-            }
+            isBusted -> "Bust with ${game.getPlayerHand().getActualScore()}!"
+            else -> ""
         }
     }
 
@@ -69,59 +57,53 @@ fun GamePlayScreen(
         // Dealer area (top)
         DealerSection(
             hand = game.getDealerHand(),
-            dealerAction = dealerActionState,
+            dealerScore = game.getDealerHand().getVisibleScore(),
             isAnimating = isDealerAnimating,
             modifier = Modifier.weight(1f)
         )
+
+        // Status message
+        if (statusMessage.isNotEmpty()) {
+            Text(
+                text = statusMessage,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
 
         // Player area (bottom)
         PlayerSection(
             hand = game.getPlayerHand(),
             currentBet = state.currentBet,
-            canHit = state.canHit,
-            canStand = state.canStand,
-            canDouble = state.canDouble,
+            canHit = state.canHit && !isAnimating && !isDealerAnimating && !isBusted,
+            canStand = state.canStand && !isAnimating && !isDealerAnimating && !isBusted,
+            canDouble = state.canDouble && !isAnimating && !isDealerAnimating && !isBusted,
             chips = game.getPlayerChips(),
             onHit = onHit,
             onStand = onStand,
             onDouble = onDouble,
             modifier = Modifier.weight(1f)
         )
-        if (isBusting && lastCard != null) {
-            Text(text = "Bust! Last card: ${lastCard.rank.name} of ${lastCard.suit}")
-        }
     }
 }
 
 @Composable
 private fun DealerSection(
     hand: Hand,
+    dealerScore: Int,
     modifier: Modifier = Modifier,
-    dealerAction: String = "",
     isAnimating: Boolean = false
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+        Text(
+            text = "Dealer" + if (isAnimating || hand.getCards().all { it.isRevealed }) " ($dealerScore)" else "",
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(vertical = 8.dp)
-        ) {
-            Text(
-                text = "Dealer",
-                style = MaterialTheme.typography.titleMedium
-            )
-            if (dealerAction.isNotEmpty()) {
-                Text(
-                    text = " - $dealerAction",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
+        )
         HandView(
             hand = hand,
             showValue = isAnimating || hand.getCards().all { it.isRevealed },
@@ -175,6 +157,7 @@ private fun PlayerSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActionButtons(
     canHit: Boolean,
@@ -203,13 +186,25 @@ private fun ActionButtons(
         ) {
             Text("Stand")
         }
-        var showDoubleTooltip by remember { mutableStateOf(false) }
         Box {
             Button(
                 onClick = onDouble,
                 enabled = canDouble && hasEnoughChipsToDouble
             ) {
                 Text("Double")
+            }
+            if (!hasEnoughChipsToDouble && canDouble) {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip {
+                            Text("Need ${currentBet} more chips to double")
+                        }
+                    },
+                    state = rememberTooltipState()
+                ) {
+                    Spacer(modifier = Modifier.fillMaxSize())
+                }
             }
         }
     }

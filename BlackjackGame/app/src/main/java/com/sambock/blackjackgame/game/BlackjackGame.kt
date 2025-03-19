@@ -5,22 +5,17 @@ class BlackjackGame(
 ) {
     private var chipManager = ChipManager(initialChips)
     private var statsManager = StatsManager()
-    private val deck = Deck()
+    val deck = Deck()
     private val player = Player()
     val dealer = Dealer()
     private var currentState: GameState = GameState.Betting
     private var currentBet: Int = 0
 
     fun startNewHand(betAmount: Int): Boolean {
-        println("BlackjackGame: Starting new hand with bet: $betAmount")
-        println("BlackjackGame: Current chips before bet: ${chipManager.getCurrentChips()}")
-        
         if (!chipManager.placeBet(betAmount)) {
-            println("BlackjackGame: Failed to place bet")
             return false
         }
 
-        println("BlackjackGame: Bet placed successfully")
         currentBet = betAmount
         deck.resetDeck(shuffle = true)
 
@@ -34,23 +29,27 @@ class BlackjackGame(
         dealer.primaryHand().addCard(deck.drawCard().apply { flip() })
         player.primaryHand().addCard(deck.drawCard().apply { flip() })
 
-        println("BlackjackGame: Initial deal complete")
-        println("BlackjackGame: Player hand: ${player.primaryHand().getCards().size} cards")
-        println("BlackjackGame: Dealer hand: ${dealer.primaryHand().getCards().size} cards")
-
         currentState = GameState.Playing(
             currentBet = betAmount,
             canDouble = true,
             canSplit = player.primaryHand().canSplit()
         )
-        println("BlackjackGame: New state set to: $currentState")
 
-        if (player.primaryHand().isBlackjack()) {
-            println("BlackjackGame: Player has blackjack")
-            endHand()
-        }
+        return true
+    }
 
-        println("BlackjackGame: Chips after hand start: ${chipManager.getCurrentChips()}")
+    // Added for animation control
+    fun addCardToPlayer(card: Card) {
+        player.primaryHand().addCard(card)
+    }
+
+    fun addCardToDealer(card: Card) {
+        dealer.primaryHand().addCard(card)
+    }
+
+    fun doubleBet(): Boolean {
+        if (!chipManager.placeBet(currentBet)) return false
+        currentBet *= 2
         return true
     }
 
@@ -69,39 +68,20 @@ class BlackjackGame(
 
     fun stand() {
         if (currentState !is GameState.Playing) return
-
-        dealer.revealHand()
-        while (dealer.shouldHit()) {
-            val card = deck.drawCard()
-            card.flip()
-            dealer.primaryHand().addCard(card)
-        }
-
         endHand()
     }
 
     fun double() {
         if (currentState !is GameState.Playing) return
         if (!chipManager.placeBet(currentBet)) return
-
         currentBet *= 2
-        val card = deck.drawCard()
-        card.flip()
-        player.primaryHand().addCard(card)
-
-        if (player.primaryHand().isBust()) {
-            currentState = GameState.Busting(currentBet)
-            endHand()
-        } else {
-            stand()
-        }
     }
 
     fun endHand() {
         val playerHand = player.primaryHand()
         val dealerHand = dealer.primaryHand()
 
-        dealer.revealHand() // Make sure dealer's cards are revealed for the final result
+        dealer.revealHand()
 
         val result = when {
             playerHand.isBust() -> GameResult.BUST
@@ -123,22 +103,22 @@ class BlackjackGame(
             chipManager.addWinnings(winAmount)
         }
 
-        // Record game statistics
         statsManager.recordGameResult(result, currentBet, chipManager.getCurrentChips())
         
         currentState = GameState.Complete(result, winAmount)
     }
 
+    fun checkForBlackjack(): Boolean {
+        return player.primaryHand().isBlackjack()
+    }
+
     fun getCurrentState() = currentState
     
-    // Helper method to copy another game's state
     fun copyStateFrom(other: BlackjackGame) {
-        // Copy chip state
         chipManager.copyFrom(other.chipManager)
         statsManager = other.statsManager
         currentBet = other.currentBet
         
-        // Copy current state
         when (val otherState = other.currentState) {
             is GameState.Playing -> {
                 currentState = GameState.Playing(
@@ -147,13 +127,11 @@ class BlackjackGame(
                     canSplit = otherState.canSplit
                 )
                 
-                // Copy dealer's hand
                 dealer.primaryHand().clear()
                 other.dealer.primaryHand().getCards().forEach { card ->
                     dealer.primaryHand().addCard(card.copyWithState())
                 }
                 
-                // Copy player's hand
                 player.primaryHand().clear()
                 other.player.primaryHand().getCards().forEach { card ->
                     player.primaryHand().addCard(card.copyWithState())
@@ -173,6 +151,8 @@ class BlackjackGame(
             }
         }
     }
+
+    fun shouldDealerHit(): Boolean = dealer.shouldHit()
     fun getPlayerChips() = chipManager.getCurrentChips()
     fun getPlayerHand() = player.primaryHand()
     fun getDealerHand() = dealer.primaryHand()
