@@ -62,7 +62,8 @@ fun BlackjackScreen(
                 GameOverScreen(
                     result = state.result,
                     winAmount = state.winAmount,
-                    onPlayAgain = { viewModel.resetGame() }
+                    onPlayAgain = { viewModel.resetGame() },
+                    onMainMenu = { navController.navigate("landing") }
                 )
             }
         }

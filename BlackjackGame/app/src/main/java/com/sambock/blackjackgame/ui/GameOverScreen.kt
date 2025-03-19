@@ -13,6 +13,7 @@ fun GameOverScreen(
     result: GameResult,
     winAmount: Int,
     onPlayAgain: () -> Unit,
+    onMainMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -43,10 +44,17 @@ fun GameOverScreen(
             )
         }
 
-        ElevatedButton(
-            onClick = onPlayAgain
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text("Play Again")
+            ElevatedButton(onClick = onMainMenu) {
+                Text("Main Menu")
+            }
+            
+            ElevatedButton(onClick = onPlayAgain) {
+                Text("Play Again")
+            }
         }
     }
 }

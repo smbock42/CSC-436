@@ -15,16 +15,23 @@ class BlackjackViewModel(
     private val _game = MutableStateFlow(BlackjackGame())
     val game = _game.asStateFlow()
 
-    private var currentChips = 1000
+    private var currentChips = 0
 
     init {
         viewModelScope.launch {
             chipDataStore.chipCount.collect { chips ->
-                currentChips = chips
-                val currentGame = _game.value
-                val newGame = BlackjackGame(chips)
-                newGame.copyStateFrom(currentGame)
-                _game.value = newGame
+                if (currentChips == 0) {
+                    // Initial load - create new game with saved chips
+                    currentChips = chips
+                    _game.value = BlackjackGame(chips)
+                } else {
+                    // Subsequent updates - preserve game state
+                    val currentGame = _game.value
+                    currentChips = chips
+                    val newGame = BlackjackGame(chips)
+                    newGame.copyStateFrom(currentGame)
+                    _game.value = newGame
+                }
             }
         }
     }
