@@ -193,19 +193,6 @@ private fun ActionButtons(
             ) {
                 Text("Double")
             }
-            if (!hasEnoughChipsToDouble && canDouble) {
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                    tooltip = {
-                        PlainTooltip {
-                            Text("Need ${currentBet} more chips to double")
-                        }
-                    },
-                    state = rememberTooltipState()
-                ) {
-                    Spacer(modifier = Modifier.fillMaxSize())
-                }
-            }
         }
     }
 }
