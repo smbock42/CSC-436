@@ -38,8 +38,6 @@ class BlackjackViewModel(
 
     fun resetGame() {
         viewModelScope.launch {
-            chipDataStore.resetChips()
-            currentChips = 1000
             val newGame = BlackjackGame(currentChips)
             _game.value = newGame
         }
