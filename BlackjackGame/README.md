@@ -13,6 +13,7 @@ View the design on Figma:
 - Shuffles and manages decks at the start of each game  
 - Tracks wins and losses  
 - Handles user actions: hit, stand, double down  
+- Sound effects for dealing, winning, and losing hands.
 
 ## Technologies  
 
