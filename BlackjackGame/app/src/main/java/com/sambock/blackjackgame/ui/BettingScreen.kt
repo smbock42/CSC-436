@@ -4,11 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -20,7 +20,7 @@ fun BettingScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
-    var currentBet by remember { mutableStateOf(5) } // Default minimum bet
+    var currentBet by remember { mutableStateOf("5") } // Store as string to handle empty input
     
     Column(
         modifier = modifier
@@ -60,7 +60,7 @@ fun BettingScreen(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "$currentBet",
+                    text = currentBet.ifEmpty { "0" },
                     style = MaterialTheme.typography.headlineLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -70,15 +70,14 @@ fun BettingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = currentBet.toString(),
+                        value = currentBet,
                         onValueChange = { newValue ->
-                            val newBet = newValue.toIntOrNull() ?: 0
-                            currentBet = newBet
-                            if (newBet in 5..maxBet) {
-                                currentBet = newBet
+                            // Allow empty or valid number
+                            if (newValue.isEmpty() || newValue.toIntOrNull() != null) {
+                                currentBet = newValue
                             }
                         },
-                        label = { Text("Custom Amount") },
+                        label = { Text("Bet Amount") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number
@@ -86,8 +85,8 @@ fun BettingScreen(
                         singleLine = true
                     )
                     Button(
-                        onClick = { currentBet = maxBet },
-                        enabled = currentBet != maxBet,
+                        onClick = { currentBet = maxBet.toString() },
+                        enabled = currentBet.toIntOrNull() != maxBet,
                         modifier = Modifier.width(80.dp)
                     ) {
                         Text("Max")
@@ -96,41 +95,65 @@ fun BettingScreen(
             }
         }
     
-        // Quick adjust chips
+        // Casino-style chip buttons
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
-            listOf(5, 10, 25, 50, 100).chunked(3).forEach { row ->
+            val chipValues = listOf(5, 25, 100, 500, 1000)
+            chipValues.chunked(3).forEach { row ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                    row.forEach { amount ->
-                        Column {
-                            FilledIconButton(
-                                onClick = {
-                                    val newBet = currentBet + amount
-                                    if (newBet <= maxBet) currentBet = newBet
-                                },
-                                enabled = currentBet + amount <= maxBet,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Text("+$amount")
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            FilledIconButton(
-                                onClick = {
-                                    val newBet = currentBet - amount
-                                    if (newBet >= 5) currentBet = newBet
-                                },
-                                enabled = currentBet > amount,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Text("-$amount")
-                            }
-                        }
+                    row.forEach { value ->
+                        ChipButton(
+                            value = value,
+                            onClick = {
+                                val currentValue = currentBet.toIntOrNull() ?: 0
+                                val newValue = currentValue + value
+                                if (newValue <= maxBet) {
+                                    currentBet = newValue.toString()
+                                }
+                            },
+                            enabled = (currentBet.toIntOrNull() ?: 0) + value <= maxBet
+                        )
                     }
+                }
+            }
+            // Quick action buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Button(
+                    onClick = { currentBet = "" },
+                    modifier = Modifier.width(90.dp)
+                ) {
+                    Text("Clear")
+                }
+                Button(
+                    onClick = {
+                        val current = currentBet.toIntOrNull() ?: 0
+                        currentBet = (current / 2).coerceAtLeast(5).toString()
+                    },
+                    modifier = Modifier.width(90.dp),
+                    enabled = currentBet.toIntOrNull() ?: 0 > 5
+                ) {
+                    Text("Half")
+                }
+                Button(
+                    onClick = {
+                        val current = currentBet.toIntOrNull() ?: 0
+                        val doubled = if (current == 0) 5 else current * 2
+                        if (doubled <= maxBet) {
+                            currentBet = doubled.toString()
+                        }
+                    },
+                    modifier = Modifier.width(100.dp),
+                    enabled = (currentBet.toIntOrNull() ?: 0) * 2 <= maxBet || currentBet.isEmpty()
+                ) {
+                    Text("Double")
                 }
             }
         }
@@ -138,17 +161,16 @@ fun BettingScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Deal button
+        val betAmount = currentBet.toIntOrNull() ?: 0
         ElevatedButton(
             onClick = {
-                if (currentBet in 5..maxBet) {
-                    println("BettingScreen: Placing bet of $currentBet")
-                    onBetPlaced(currentBet)
-                } else {
-                    println("BettingScreen: Invalid bet amount: $currentBet (max: $maxBet)")
+                if (betAmount in 5..maxBet) {
+                    println("BettingScreen: Placing bet of $betAmount")
+                    onBetPlaced(betAmount)
                 }
             },
             modifier = Modifier.size(width = 200.dp, height = 56.dp),
-            enabled = currentBet >= 5 && currentBet <= maxBet,
+            enabled = betAmount >= 5 && betAmount <= maxBet,
             colors = ButtonDefaults.elevatedButtonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -163,7 +185,7 @@ fun BettingScreen(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    "($currentBet)",
+                    "($betAmount)",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -174,21 +196,25 @@ fun BettingScreen(
 @Composable
 private fun ChipButton(
     value: Int,
-    currentBet: Int,
-    maxBet: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
-        enabled = value <= maxBet,
+        enabled = enabled,
+        modifier = Modifier.size(90.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (currentBet == value) 
-                MaterialTheme.colorScheme.primary 
-            else 
-                MaterialTheme.colorScheme.secondary
-        ),
-        modifier = Modifier.size(64.dp)
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
     ) {
-        Text("$value")
+        // Choose text style based on number length
+        val style = MaterialTheme.typography.titleMedium
+        
+        Text(
+            text = value.toString(),
+            style = style,
+            textAlign = TextAlign.Center
+        )
     }
 }
