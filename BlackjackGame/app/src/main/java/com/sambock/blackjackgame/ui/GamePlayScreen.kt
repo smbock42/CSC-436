@@ -81,6 +81,7 @@ fun GamePlayScreen(
             canHit = state.canHit,
             canStand = state.canStand,
             canDouble = state.canDouble,
+            chips = game.getPlayerChips(),
             onHit = onHit,
             onStand = onStand,
             onDouble = onDouble,
@@ -136,6 +137,7 @@ private fun PlayerSection(
     canHit: Boolean,
     canStand: Boolean,
     canDouble: Boolean,
+    chips: Int,
     onHit: () -> Unit,
     onStand: () -> Unit,
     onDouble: () -> Unit,
@@ -163,6 +165,8 @@ private fun PlayerSection(
             canHit = canHit,
             canStand = canStand,
             canDouble = canDouble,
+            hasEnoughChipsToDouble = chips >= currentBet,
+            currentBet = currentBet,
             onHit = onHit,
             onStand = onStand,
             onDouble = onDouble,
@@ -176,6 +180,8 @@ private fun ActionButtons(
     canHit: Boolean,
     canStand: Boolean,
     canDouble: Boolean,
+    hasEnoughChipsToDouble: Boolean,
+    currentBet: Int,
     onHit: () -> Unit,
     onStand: () -> Unit,
     onDouble: () -> Unit,
@@ -197,11 +203,14 @@ private fun ActionButtons(
         ) {
             Text("Stand")
         }
-        Button(
-            onClick = onDouble,
-            enabled = canDouble
-        ) {
-            Text("Double")
+        var showDoubleTooltip by remember { mutableStateOf(false) }
+        Box {
+            Button(
+                onClick = onDouble,
+                enabled = canDouble && hasEnoughChipsToDouble
+            ) {
+                Text("Double")
+            }
         }
     }
 }

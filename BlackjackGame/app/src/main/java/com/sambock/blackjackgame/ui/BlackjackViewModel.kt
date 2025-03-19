@@ -133,7 +133,13 @@ class BlackjackViewModel(
 
     fun topUpChips() {
         viewModelScope.launch {
-            chipDataStore.saveChipCount(1000)
+            val newChips = 1000
+            chipDataStore.saveChipCount(newChips)
+            // Create new game with topped up chips while preserving state
+            val currentGame = _game.value
+            val newGame = BlackjackGame(newChips)
+            newGame.copyStateFrom(currentGame)
+            _game.value = newGame
         }
     }
 }
