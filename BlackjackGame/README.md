@@ -1,33 +1,34 @@
-# Blackjack Game
+# Blackjack Game  
 
-This mobile application provides a platform for playing the card game Blackjack. Users can enjoy a classic casino experience through a clean and intuitive interface.
+This app lets users play a game of Blackjack with a simple, intuitive interface. It manages decks, shuffles at the start of each game, and tracks wins and losses. Players can hit, stand, or double down.  
 
-## Figma Design
+## Figma Design  
 
-The application's design can be viewed on Figma:
+View the design on Figma:  
+[Blackjack App Design](https://www.figma.com/design/DJgSknLOnhbF8prLJtVzOg/Blackjack-app?m=auto&t=s8gi36FyVyg9e6ZL-1)  
 
-[https://www.figma.com/design/DJgSknLOnhbF8prLJtVzOg/Blackjack-app?m=auto&t=s8gi36FyVyg9e6ZL-1](https://www.figma.com/design/DJgSknLOnhbF8prLJtVzOg/Blackjack-app?m=auto&t=s8gi36FyVyg9e6ZL-1)
+## Features  
 
-## Key Features
+- Renders realistic card images  
+- Shuffles and manages decks at the start of each game  
+- Tracks wins and losses  
+- Handles user actions: hit, stand, double down  
 
-*   The application renders realistic card images.
-*   Decks are curated and shuffled at the beginning of each game.
-*   Users can select to hit, stand, or double down during gameplay.
-*   The application tracks wins and losses to allow users to monitor their progress.
+## Technologies  
 
-## Technologies Used
+- Jetpack Compose for the UI  
+- DataStore for persistent storage  
+- Navigation Component for screen transitions  
+- Kotlin Coroutines for background tasks  
 
-*   Jetpack Compose for the user interface
-*   DataStore for persistent data storage
-*   Navigation between screens. 
+## Dependencies  
 
-## Dependencies
+- Android SDK 24+  
+- Kotlin Coroutines  
+- Android KTX  
 
-*   Android SDK 24+
-*   Kotlin Coroutines
-*   Android KTX
+## Future Work  
 
-## Future Implementations
-
-*   Splitting hands, insurance, and other key aspects of the game.
-*   Different global customizable settings like card backs and themes. 
+- Add hand splitting, insurance, and other Blackjack rules  
+- Allow users to customize card backs and themes  
+- Explore multiplayer functionality  
