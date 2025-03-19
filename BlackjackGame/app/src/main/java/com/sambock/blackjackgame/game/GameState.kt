@@ -9,6 +9,6 @@ sealed class GameState {
         val canDouble: Boolean = true,
         val canSplit: Boolean = false
     ) : GameState()
-    object Busting : GameState()
+    data class Busting(val currentBet: Int) : GameState()
     data class Complete(val result: GameResult, val winAmount: Int) : GameState()
 }

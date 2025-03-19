@@ -48,9 +48,10 @@ fun BlackjackScreen(
                 )
             }
             is GameState.Busting -> {
+                // Show busting animation but don't allow actions
                 GamePlayScreen(
                     game = game,
-                    state = GameState.Playing(currentBet = 0), // Dummy state
+                    state = GameState.Playing(currentBet = state.currentBet), 
                     onHit = { },
                     onStand = { },
                     onDouble = { },

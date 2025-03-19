@@ -62,7 +62,8 @@ class BlackjackGame(
         player.primaryHand().addCard(card)
 
         if (player.primaryHand().isBust()) {
-            currentState = GameState.Busting
+            currentState = GameState.Busting(currentBet)
+            endHand()
         }
     }
 
@@ -84,8 +85,14 @@ class BlackjackGame(
         if (!chipManager.placeBet(currentBet)) return
 
         currentBet *= 2
-        hit()
-        if (currentState is GameState.Playing) {
+        val card = deck.drawCard()
+        card.flip()
+        player.primaryHand().addCard(card)
+
+        if (player.primaryHand().isBust()) {
+            currentState = GameState.Busting(currentBet)
+            endHand()
+        } else {
             stand()
         }
     }
@@ -93,6 +100,8 @@ class BlackjackGame(
     fun endHand() {
         val playerHand = player.primaryHand()
         val dealerHand = dealer.primaryHand()
+
+        dealer.revealHand() // Make sure dealer's cards are revealed for the final result
 
         val result = when {
             playerHand.isBust() -> GameResult.BUST
@@ -160,7 +169,7 @@ class BlackjackGame(
                 currentState = GameState.Betting
             }
             is GameState.Busting -> {
-                currentState = GameState.Busting
+                currentState = GameState.Busting(otherState.currentBet)
             }
         }
     }
